@@ -1,0 +1,115 @@
+
+<meta charset="UTF-8">
+<HTML ng-app="CategoriaApp">
+	<HEAD>
+		
+		<script src="../js/jquery.min.js"></script>
+		<script src="../js/angular.min.js"></script>
+		<script src="../js/utils.js"></script>
+		<link rel="stylesheet" href="../style/bootstrap.min.css">
+		<link rel="stylesheet" href="../style/css.css"/>
+
+		<script>
+			window.location.href="#openModal" 
+			var CategoriaApp = angular.module('CategoriaApp', []);
+			programaIDGlobal = readCookie('catId');
+			var programaTemp = readCookie('programaIDGlobal');
+			latitudLocal = readCookie('addressCurrentLat');
+			longitudLocal = readCookie('addressCurrentLon');
+			programas = new Object();
+			categorias = new Object();
+			if(updateActivated === true){
+				cargarArrays();
+			}else{
+				console.log("MODO MANUAL")
+			}
+			CategoriaApp.controller('CategoriaCtrl', function ($scope, $http){
+				$scope.promgrama = null;
+				$scope.promgramas = null;
+				$scope.categorias = null;
+				
+				categoriaSelected = new Object();
+				$scope.setSelected = function() {
+					categoriaSelected = this.cat;
+					var sIdPr = categoriaSelected.id;
+					writeCookie('subCcatId', sIdPr, 3);
+					writeCookie('programaIDGlobal', programaTemp, 3);
+					writeCookie('subCatProg', programaIDGlobal, 3);
+					writeCookie('addressCurrentLat', latitudLocal, 3);
+					writeCookie('addressCurrentLon', longitudLocal, 3);
+				};
+				
+				
+				if(updateActivated === true){
+					$scope.categorias = getCategoriasByPrograma();
+					$scope.categoria = getPrograma();
+				}else{
+					$http.get(urlWebServiceLocal).success(function(data) {
+						$scope.mineriaDatos = data;
+						for(var keyName in $scope.mineriaDatos){
+							var key=keyName ;
+							var object= $scope.mineriaDatos[keyName];
+
+							if(key === 'programas')
+								programas = object;
+							else if(key === 'categorias')
+								categorias = object;
+						}
+						$scope.categorias = getCategoriasByPrograma();
+						$scope.categoria = getPrograma();
+						window.location.href="#close"
+					});
+				}
+				//console.log("DataSubCat: CARGA SCOPE")
+			});
+			
+		</script>
+	</HEAD>
+	<BODY ng-controller="CategoriaCtrl">
+		<div id="openModal" class="modalDialog">
+			<div>
+				<a href="#close" title="Close" class="close">X</a>
+				<h2>Leyendo subcategorias...</h2>
+				<div  id="barCom" class="bar" style="display: {{displayLoading}}; "></div>
+			</div>
+		</div>
+		<table>
+			<tr>
+				<th style="background-color: #aaaaaa; height: 15px; text-align: center; height: 30px; padding-left: 10px;">
+					<a href="DataCat.html">
+						<img src="backIcon.png"/>
+					</a>
+				</th>
+				<th style="color: white; background-color: #aaaaaa; height: 15px; text-align: left; height: 30px; width: 100%; padding-left: 15px;">
+					<div id="parentId">
+						<a href="DataCat.html" id="parentId">
+							{{categoria.title}}
+						</a>
+					</div>
+				</th>
+			</tr>
+		</table>
+		
+		
+		<table>
+		  <tr>
+			<th></th>
+			<th></th>
+		  </tr>
+		  <tr ng-repeat="cat in categorias"  ng-click="setSelected();"
+			style="border-style: solid; border-width:1px;	border-color: #aaaaaa white;">
+			<td style="text-align: center; padding-bottom: 5px; padding-top: 5px;">
+				<IMG class="img-circle" src="{{cat.logo}}">
+			</td>
+			<td style="width: 100%;" id="itemList">
+				<a href="DataPromo.html" style="padding-left: 2cm;" id="itemList">
+					{{cat.title}}
+				</a>
+			</td>
+		  </tr>
+		</table>
+		
+		
+		
+	</BODY>
+</HTML> 

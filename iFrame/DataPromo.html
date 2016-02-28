@@ -1,0 +1,250 @@
+
+<meta charset="UTF-8">
+<HTML ng-app="PromocionApp" class="loading">
+	<HEAD>
+		<script src="../js/jquery.min.js"></script>
+		<script src="../js/angular.min.js"></script>
+		<script src="../js/utils.js"></script>
+		<link rel="stylesheet" href="../style/bootstrap.min.css">
+		<link rel="stylesheet" href="../style/css.css"/>
+		
+		
+		<script>
+			window.location.href="#openModal" 
+			failNavigation = readCookie('failNavigation');
+			programaIDGlobal = readCookie('programaIDGlobal');
+			latitudLocal = readCookie('addressCurrentLat');
+			longitudLocal = readCookie('addressCurrentLon');
+			var subCatProg = readCookie('subCatProg');
+			if(programaIDGlobal.toString() === '100'){//Especialidades y Mujer banorte
+				categoriaIDGlobal = readCookie('subCcatId');
+			}else if(programaIDGlobal.toString() === '11'){
+				categoriaIDGlobal = readCookie('subCcatId');
+			}else{
+				categoriaIDGlobal = readCookie('catId');
+			}
+			console.log("PROGRMA: " +programaIDGlobal + " CATEGORIA: " +categoriaIDGlobal);
+			
+			var PromocionApp = angular.module('PromocionApp', []);
+			programas = new Object();
+			categorias = new Object();
+			promociones = new Object();
+			
+			var promoSelected = null;
+			estadoLocal = new Object();
+			
+			if(updateActivated === true){
+				cargarArrays();
+			}else{
+				console.log("MODO MANUAL")
+			}
+			PromocionApp.controller('PromocionCtrl', function ($scope, $http){
+				$scope.displayLoading = "block";
+				$scope.categorias = null;
+				$scope.backNavigation = null;
+				$scope.categoria = null;
+				$scope.promociones = null;
+				promoSelected = new Object();
+				
+				$scope.return = function() {
+					writeCookie('programaIDGlobal', programaIDGlobal, 3);
+					if(programaIDGlobal.toString() === '11'){//Mujer banorte
+						$scope.backNavigation = "DataSubCat.html";
+					}else if(programaIDGlobal.toString() === '100'){//Especialidades
+						$scope.backNavigation = "DataSubCat.html";
+					}else{
+						$scope.backNavigation = "DataCat.html";
+					}
+					window.location.href = $scope.backNavigation; 
+				};
+				
+				$scope.setSelected = function() {
+					promoSelected = this.promo;
+					var indiceEspacio = promoSelected.idPromo.indexOf(' ');
+					var sIdPr = promoSelected.idPromo.substring(0, indiceEspacio);
+					writeCookie('promoId', sIdPr, 3);
+					
+					
+					//console.log(promoSelected);
+					
+					writeCookie('latMapa', promoSelected.latitud, 3);
+					writeCookie('lonMapa', promoSelected.longitud, 3);
+					writeCookie('addressCurrentLat', latitudLocal, 3);
+					writeCookie('addressCurrentLon', longitudLocal, 3);
+					
+					writeCookie('dataString', JSON.stringify(promoSelected), 3);
+				};
+				$http.get('estados.JSON').success(function(data) {
+					estadosMineria = data;
+				});
+				
+				
+				
+				
+				
+				
+				if(updateActivated === true){
+					longitudLocal = readCookie('addressCurrentLon');
+					latitudLocal = readCookie('addressCurrentLat');
+					estadoLocal = buscarCoincidencias(readCookie('addressCurrent'));
+					if(categoriaIDGlobal.toString() === "100"){
+						console.log("TODO");
+						if(programaIDGlobal.toString() === '11'){//Mujer banorte
+							console.log("Promociones Mujer Banorte");
+							$scope.promociones = getTodasLasPromocionesMujerBanorte(subCatProg);
+							$scope.categoria = getCategoriaNameTodas();
+							$scope.backNavigation = "DataSubCat.html";
+							
+						}else if(subCatProg.toString() === '3'){//hogar banorte
+							console.log("HOGAR banorte");
+							$scope.promociones = getTodasLasPromocionesMujerBanorte(subCatProg);
+							$scope.categoria = getCategoriaNameTodas();
+							$scope.backNavigation = "DataSubCat.html";
+						}else if(subCatProg.toString() === '2'){//Empresario banorte
+							console.log("EMPRESARIO Banorte");
+							$scope.promociones = getTodasLasPromocionesMujerBanorte(subCatProg);
+							$scope.categoria = getCategoriaNameTodas();
+							$scope.backNavigation = "DataSubCat.html";
+						}else{
+							console.log("NORMAL");
+							$scope.promociones = getTodasLasPromociones();
+							$scope.categoria = getCategoriaNameTodas();
+							$scope.backNavigation = "DataCat.html";
+						}
+					}else{
+						console.log("SUBCATEGORIAS");
+						$scope.backNavigation = "DataSubCat.html";
+						$scope.promociones = getPromocionesByCategoria();//*
+						$scope.categoria = getCategoria();
+					}
+					$scope.promociones = eliminarDuplicados($scope.promociones);
+					
+					if(programaIDGlobal.toString() === '5'){
+						$scope.promociones = $scope.promociones.sort(orderByProperty('nombre'));
+					}else
+						$scope.promociones = $scope.promociones.sort(orderByProperty('distancia'));
+				}else{
+					$http.get(urlWebServiceLocal).success(function(data) {
+						$scope.mineriaDatos = data;
+						for(var keyName in $scope.mineriaDatos){
+							var key=keyName ;
+							var object= $scope.mineriaDatos[keyName];
+
+							if(key === 'programas'){
+								programas = object;
+							}
+							else if(key === 'categorias')
+								categorias = object;
+							else if(key === 'promociones')
+								promociones = object;	
+							
+						}
+						
+						longitudLocal = readCookie('addressCurrentLon');
+						latitudLocal = readCookie('addressCurrentLat');
+						//estadoLocal = buscarCoincidencias(readCookie('addressCurrent'));
+						if(categoriaIDGlobal.toString() === "100"){
+							console.log("TODO");
+							if(programaIDGlobal.toString() === '11'){//Mujer banorte
+								console.log("Promociones Mujer Banorte");
+								$scope.promociones = getTodasLasPromocionesMujerBanorte(subCatProg);
+								$scope.categoria = getCategoriaNameTodas();
+								$scope.backNavigation = "DataSubCat.html";
+								
+							}else if(subCatProg.toString() === '3'){//hogar banorte
+								console.log("HOGAR banorte");
+								$scope.promociones = getTodasLasPromocionesMujerBanorte(subCatProg);
+								$scope.categoria = getCategoriaNameTodas();
+								$scope.backNavigation = "DataSubCat.html";
+							}else if(subCatProg.toString() === '2'){//Empresario banorte
+								console.log("EMPRESARIO Banorte");
+								$scope.promociones = getTodasLasPromocionesMujerBanorte(subCatProg);
+								$scope.categoria = getCategoriaNameTodas();
+								$scope.backNavigation = "DataSubCat.html";
+							}else{
+								console.log("NORMAL");
+								$scope.promociones = getTodasLasPromociones();
+								$scope.categoria = getCategoriaNameTodas();
+								$scope.backNavigation = "DataCat.html";
+							}
+						}else{
+							console.log("SUBCATEGORIAS");
+							$scope.backNavigation = "DataSubCat.html";
+							$scope.promociones = getPromocionesByCategoria();//*
+							$scope.categoria = getCategoria();
+						}
+						$scope.promociones = eliminarDuplicados($scope.promociones);
+						
+						if(programaIDGlobal.toString() === '5'){
+							$scope.promociones = $scope.promociones.sort(orderByProperty('nombre'));
+						}else
+							$scope.promociones = $scope.promociones.sort(orderByProperty('distancia'));
+							
+						window.location.href="#close"
+					});
+				}
+				//console.log("DataPromo: CARGA SCOPE")
+			});
+			
+		</script>
+		
+	</HEAD>
+	<BODY ng-controller="PromocionCtrl">
+		<div id="openModal" class="modalDialog">
+			<div>
+				<a href="#close" title="Close" class="close">X</a>
+				<h2>Leyendo promociones...</h2>
+				<div  id="barCom" class="bar" style="display: {{displayLoading}}; "></div>
+			</div>
+		</div>
+		
+		<table>
+			<tr>
+				<th style="background-color: #aaaaaa; height: 15px; text-align: center; height: 30px; padding-left: 10px;">
+					<a href="" ng-click="return();">
+						<img src="backIcon.png"/>
+					</a>
+				</th>
+				<th style="color: white; background-color: #aaaaaa; height: 15px; text-align: left; height: 30px; width: 100%; padding-left: 15px;">
+					<div id="parentId">
+						<a href="" id="parentId" ng-click="return();">
+							{{categoria.title}}
+						</a>
+					</div>
+				</th>
+			</tr>
+		</table>
+		
+		<table>
+		  <tr>
+			<th></th>
+			<th></th>
+		  </tr>
+		
+		  <tr ng-repeat="promo in promociones track by $index" ng-click="setSelected();"
+			style="border-style: solid; border-width:1px; border-color: #aaaaaa;">
+			<td style="text-align: center; padding-bottom: 5px; padding: 5px;">
+				<IMG class="img-circle" src="{{promo.logoImg}}">
+			</td>
+			<td style="width: 100%;" id="itemList">
+				<a href="DataDetallePromo.html" style="padding-left: 2cm;" id="itemList">
+					{{promo.nombre}} {{promo.distancia}} {{promo.unidad}}.
+				</a>
+			</td>
+		  </tr>
+		</table>
+		
+		
+		<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAtK-vLlqH4k8tKyGtUwWXMEOK13TvID2I">
+		</script>
+
+		
+		
+		
+		
+
+
+
+	
+	</BODY>
+</HTML> 

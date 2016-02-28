@@ -1,0 +1,205 @@
+
+<meta charset="UTF-8">
+<HTML ng-app="PromocionApp">
+	<HEAD>
+		<script src="../js/jquery.min.js"></script>
+		<script src="../js/angular.min.js"></script>
+		<script src="../js/utils.js"></script>
+		<link rel="stylesheet" href="../style/bootstrap.min.css">
+		<link rel="stylesheet" href="../style/css.css"/>
+		
+	
+		<script>
+			window.location.href="#openModal" 
+			promocionIDGlobal = readCookie('promoId');
+			latitudLocal = readCookie('addressCurrentLat');
+			longitudLocal = readCookie('addressCurrentLon');
+			latMapDetails = readCookie('latMapa');
+			lonMapDetails = readCookie('lonMapa');
+			
+			var dataString = readCookie('dataString');
+			
+			var PromocionApp = angular.module('PromocionApp', []);
+			var promociones = new Object();
+			estadoLocal = new Object();
+			promocionEnMapa = new Object();
+			
+			if(updateActivated === true){
+				cargarArrays();
+			}else{
+				console.log("MODO MANUAL")
+			}
+			PromocionApp.controller('PromocionCtrl', function ($scope, $http){
+				$scope.promociones = null;
+				$scope.promocion = null;
+				
+				$http.get('estados.JSON').success(function(data) {
+					estadosMineria = data;
+				});
+				
+				if(updateActivated === true){
+					$scope.promocion = getPromocionSelected();
+					promocionEnMapa = $scope.promocion;
+					initialize(promociones);
+				}else{
+				
+					try {
+						promocionEnMapa = JSON.parse(dataString);
+						$scope.promocion = promocionEnMapa;
+						promocionEnMapa.icono = "puntero.png";
+						initialize(promocionEnMapa);
+						window.location.href="#close"
+					}
+					catch(err) {
+						console.log("Error..Retry!")
+						
+						$http.get(urlWebServiceLocal).success(function(data) {
+						
+							$scope.mineriaDatos = data;
+							for(var keyName in $scope.mineriaDatos){
+								var key=keyName ;
+								var object= $scope.mineriaDatos[keyName];
+								if(key === 'promociones')
+									promociones = object;
+							}
+							$scope.promocion = getPromocionSelected();
+							$scope.promocion.nombre = $scope.promocion.name;
+							$scope.promocion.logoImg = $scope.promocion.logo;
+							
+							$scope.promocion.distancia = calculaDistancia(latitudLocal, longitudLocal, latMapDetails, lonMapDetails);
+							$scope.promocion.unidad = " km";
+							$scope.promocion.icono = "puntero.png";
+							promocionEnMapa = $scope.promocion;
+							initialize($scope.promocion);
+						});
+					}
+				}
+				window.location.href="#close"
+				//console.log("DataDetallePromo: CARGA SCOPE")
+			});
+
+			function initMap() {
+				//constriurMapa();
+			}
+			
+			var map;
+			var markers = [];
+			function initialize(promo) {
+			
+				var haightAshbury = {lat: parseFloat(latMapDetails), lng: parseFloat(lonMapDetails)};
+				map = new google.maps.Map(document.getElementById('map'), {
+					zoom: 16,
+					center: haightAshbury,
+					mapTypeId: google.maps.MapTypeId.TERRAIN
+				});
+				
+				
+				/*
+				// This event listener will call addMarker() when the map is clicked.
+				map.addListener('click', function(event) {
+					addMarker(event.latLng);
+				});*/
+
+				// Adds a marker at the center of the map.
+				addMarker(haightAshbury, promo);
+				
+				
+				//******************************
+				var dataHome = new Object();
+				dataHome.nombre = "Home"
+				dataHome.distancia = ""
+				dataHome.unidad = ""
+				dataHome.icono = "punteroHome.png"
+				
+				var homeLocation = {lat: parseFloat(latitudLocal), lng: parseFloat(longitudLocal)};
+				addMarker(homeLocation, dataHome);
+				//******************************
+				
+			}
+
+			// Adds a marker to the map and push to the array.
+			function addMarker(location, promo) {
+				var marker = new google.maps.Marker({
+					position: location,
+					map: map,
+					icon: promo.icono,
+					title: promo.nombre
+				});
+				markers.push(marker);
+				google.maps.event.addListener(marker, 'click', function(){
+					var popup = new google.maps.InfoWindow();
+					var note = "Distancia: " + promo.distancia + " " + promo.unidad
+					popup.setContent(note);
+					popup.open(map, this);
+				});
+			}
+			// Sets the map on all markers in the array.
+			function setMapOnAll(map) {
+				for (var i = 0; i < markers.length; i++) {
+					markers[i].setMap(map);
+				}
+			}
+			// Removes the markers from the map, but keeps them in the array.
+			function clearMarkers() {
+				setMapOnAll(null);
+			}
+			// Shows any markers currently in the array.
+			function showMarkers() {
+				setMapOnAll(map);
+			}
+			// Deletes all markers in the array by removing references to them.
+			function deleteMarkers() {
+				clearMarkers();
+				markers = [];
+			}
+		
+		</script>
+	</HEAD>
+	<BODY ng-controller="PromocionCtrl">
+		<div id="openModal" class="modalDialog">
+			<div>
+				<a href="#close" title="Close" class="close">X</a>
+				<h2>Leyendo información de promoción...</h2>
+				<div  id="barCom" class="bar" style="display: {{displayLoading}}; "></div>
+			</div>
+		</div>
+		<table>
+		  <tr>
+			<th style="background-color: #aaaaaa; height: 15px; text-align: center; height: 30px; padding-left: 10px;">
+				<a href="DataPromo.html">
+					<img src="backIcon.png"/>
+				</a>
+			</th>
+			<th style="color: white; background-color: #aaaaaa; height: 15px; text-align: left; height: 30px; width: 100%; padding-left: 15px;">
+				<div id="parentId">
+					<a href="DataPromo.html" id="parentId">
+						{{promocion.nombre}}
+					</a>
+				</div>
+			</th>
+		  </tr>
+		</table>
+		
+		<div style="text-align: center; padding-top: 10px;">
+			<img src="{{promocion.logoImg}}" />
+		</div>
+		<div>
+			
+			<p style="color: #800000; text-align: left;">{{promocion.slogan}}</p>
+			<p style="text-align: justify; text-justify: inter-word;">{{promocion.oferta}}</p>
+			<p class="detail__description">{{promocion.descripcion}}</p>
+			<a ng-href="tel:{{promocion.telefono}}" class="detail__contact" ng-show="promocion.telefono"><i class="icon  ion-ios-telephone"></i>{{promocion.telefono}}</a>
+		</div>
+		<div style="text-align: center;">
+			<IMG src="{{promocion.footer}}"  style="max-width:100%;height:auto;">
+		</div>
+		
+		
+		
+		
+		<div id="map" style="height: 300px; width: 100%; padding-top: 20px;"></div>
+		<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAtK-vLlqH4k8tKyGtUwWXMEOK13TvID2I&callback=initMap">
+		</script>
+		
+	</BODY>
+</HTML> 
